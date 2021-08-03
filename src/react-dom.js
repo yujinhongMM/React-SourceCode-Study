@@ -26,6 +26,8 @@ function createDOM(vdom) {
     let dom; // 真实DOM
     if (type === REACT_TEXT) { // 如果这个元素是一个文本的话
         dom = document.createTextNode(props.content);
+    } else if (typeof type === 'function') {
+        return mountFunctionComponent(vdom);
     } else {
         dom = document.createElement(type);
     }
@@ -72,6 +74,15 @@ function updateProps(dom, oldProps, newProps) {
  */
 function reconcileChildren(childrenVdom, parentDOM) {
     childrenVdom.forEach(childVdom => mount(childVdom, parentDOM));
+}
+
+function mountFunctionComponent(vdom) {
+    const { type, props } = vdom;
+    // 这里的type就是传入的函数
+    let renderVdom = type(props);
+    // 这个代码我们现在还没有用，后面进行组件更新使用的
+    vdom.oldRendervdom = renderVdom;
+    return createDOM(renderVdom);
 }
 
 const ReactDOM = {
