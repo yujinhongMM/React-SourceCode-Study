@@ -26,8 +26,16 @@ function createElement(type, config, children) {
     return { type, ref, key, props }
 }
 
+class Component {
+    static isReactComponent = true; // 当子类继承父类的时候，父类的静态属性也是可以继承的
+    constructor(props) {
+        this.props = props;
+    }
+}
+
 const React = {
-    createElement
+    createElement,
+    Component
 }
 
 export default React;
