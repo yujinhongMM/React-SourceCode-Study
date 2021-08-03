@@ -47,6 +47,7 @@ function createDOM(vdom) {
             }
         }
     }
+    vdom.dom = dom; // 让虚拟DOM的dom属性指向这个虚拟DOM对应的真实DOM
     return dom;
 }
 
@@ -65,6 +66,8 @@ function updateProps(dom, oldProps, newProps) {
             for (let attr in styleObj) {
                 dom.style[attr] = styleObj[attr]
             }
+        } else if (key.startsWith('on')) {
+            dom[key.toLocaleLowerCase()] = newProps[key];
         } else {
             dom[key] = newProps[key]; // className
         }
@@ -93,13 +96,40 @@ function mountClassComponent(vdom) {
     const { type: ClassComponent, props } = vdom;
     let classInstance = new ClassComponent(props);
     let renderVdom = classInstance.render();
-    vdom.oldrenderVdom = renderVdom;
+    classInstance.oldRenderVdom = vdom.oldRenderVdom = renderVdom;
     return createDOM(renderVdom);
+}
+
+function findDOM(vdom) {
+    if (!vdom) return null;
+    if (vdom.dom) {
+        return vdom.dom;
+    } else {
+        return findDOM(vdom.oldRenderVdom);
+    }
+}
+/**
+ * dom-diff核心比较新旧虚拟DOM的差异，然后把差异同步到真实DOM节点上
+ * @param {*} oldVdom 
+ * @param {*} newVdom 
+ */
+function compareTwoVdom(oldVdom, newVdom) {
+    // 获取 oldVdom对应的真实DOM
+    let oldDOM = findDOM(oldVdom);
+    // 父节点
+    let parentDOM = oldDOM.parentNode;
+    // 根据新的虚拟DOM得到新的真实DOM
+    let newDOM = createDOM(newVdom);
+    // 把老得真实DOM替换成新的真实DOM replaceChild原生的DOM操作
+    parentDOM.replaceChild(newDOM, oldDOM);
 }
 
 
 const ReactDOM = {
-    render
+    render,
+    findDOM,
+    createDOM,
+    compareTwoVdom
 }
 
 export default ReactDOM;
