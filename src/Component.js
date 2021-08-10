@@ -1,4 +1,16 @@
 import ReactDOM from './react-dom'
+// 更新队列
+export let updateQueue = {
+    isBatchingUpdate: false, // 默认值是非批量的，同步的
+    updaters: [], // 更新器的数组
+    batchUpdate() {
+        for (let updater of updateQueue.updaters) {
+            updater.updateComponent();
+        }
+        updateQueue.updaters.length = 0;
+        updateQueue.isBatchingUpdate = false;
+    }
+}
 class Updater {
     constructor(classInstance) {
         this.classInstance = classInstance;
@@ -9,7 +21,12 @@ class Updater {
         this.emitUpdate(); // 触发更新
     }
     emitUpdate() {
-        this.updateComponent();
+        // 有可能是批量更新，也有可能是同步更新
+        if (updateQueue.isBatchingUpdate) { // 批量异步更新
+            updateQueue.updaters.push(this); // 不刷新组件视图了，只是把自己这个updater实例添加到updateQueue等待生效
+        } else { // 同步直接更新
+            this.updateComponent();
+        }
     }
     updateComponent() {
         const { classInstance, pendingStates } = this;
@@ -21,6 +38,9 @@ class Updater {
         const { classInstance, pendingStates } = this;
         let { state } = classInstance; // 老状态
         pendingStates.forEach((partialState) => { // 和每个分状态
+            if (typeof partialState === 'function') {
+                partialState = partialState(state);
+            }
             state = { ...state, ...partialState }
         })
         pendingStates.length = 0; // 清空等待生效状态的数组
