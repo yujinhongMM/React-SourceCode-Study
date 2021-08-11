@@ -22,7 +22,7 @@ function mount(vdom, container) {
  */
 function createDOM(vdom) {
     if (!vdom) return null;
-    let { type, props } = vdom;
+    let { type, props, ref } = vdom;
     let dom; // 真实DOM
     if (type === REACT_TEXT) { // 如果这个元素是一个文本的话
         dom = document.createTextNode(props.content);
@@ -48,6 +48,9 @@ function createDOM(vdom) {
         }
     }
     vdom.dom = dom; // 让虚拟DOM的dom属性指向这个虚拟DOM对应的真实DOM
+    if (ref) {
+        ref.current = dom; // 如果把虚拟DOM转成真实DOM，就让ref.current=真实DOM
+    }
     return dom;
 }
 
