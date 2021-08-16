@@ -1,19 +1,11 @@
 import React from './react';
 import ReactDOM from './react-dom';
 
-class TextInput extends React.Component {
-    constructor(props) {
-        super(props);
-        this.inputRef = React.createRef();
-    }
-    getFocus = () => {
-        this.inputRef.current.focus();
-    }
-    render () {
-        return <input ref={this.inputRef} />
-    }
-}
+function TextInput(props, forwardRef) {
+    return <input ref={forwardRef} />
+} 
 
+const ForwardedTextInput = React.forwardRef(TextInput);
 class Form extends React.Component {
     constructor(props) {
         super(props);
@@ -21,12 +13,12 @@ class Form extends React.Component {
     }
     getFocus = (event) => {
         // 如果给一个类组件添加了ref属性，那么ref.current会指向类组件的实例
-        this.inputRef.current.getFocus();
+        this.inputRef.current.focus();
     }
     render() {
         return(
             <div>
-                <TextInput ref={this.inputRef} />
+                <ForwardedTextInput ref={this.inputRef} />
                 <button onClick={this.getFocus}>输入框获得焦点</button>
             </div>
         )

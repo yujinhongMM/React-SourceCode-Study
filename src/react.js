@@ -1,5 +1,6 @@
 import { wrapToVdom } from './utils';
 import Component from './Component';
+import { REACT_ELEMENT, REACT_FORWARD_REF } from './constants';
 
 /**
  * 创建一个虚拟DOM，也就是React元素
@@ -24,17 +25,25 @@ function createElement(type, config, children) {
     } else {
         props.children = wrapToVdom(children); // children可能是React元素对象，也可能是一个字符串 数字 null undefined
     }
-    return { type, ref, key, props }
+    return { $$typeof: REACT_ELEMENT, type, ref, key, props }
 }
 
 function createRef() {
     return { current: null }
 }
 
+function forwardRef(render) {
+    return {
+        $$typeof: REACT_FORWARD_REF,
+        render // 函数组件
+    }
+}
+
 const React = {
     createElement,
     Component,
-    createRef
+    createRef,
+    forwardRef
 }
 
 export default React;

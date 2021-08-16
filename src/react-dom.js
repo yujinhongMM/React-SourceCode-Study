@@ -1,4 +1,4 @@
-import { REACT_TEXT } from './constants';
+import { REACT_TEXT, REACT_FORWARD_REF } from './constants';
 import Event from './event';
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
@@ -24,7 +24,9 @@ function createDOM(vdom) {
     if (!vdom) return null;
     let { type, props, ref } = vdom;
     let dom; // 真实DOM
-    if (type === REACT_TEXT) { // 如果这个元素是一个文本的话
+    if (type && type.$$typeof === REACT_FORWARD_REF) {
+        return mountForwardComponent(vdom);
+    } else if (type === REACT_TEXT) { // 如果这个元素是一个文本的话
         dom = document.createTextNode(props.content);
     } else if (typeof type === 'function') {
         if (type.isReactComponent) { // 说明它是一个类组件
@@ -130,6 +132,12 @@ function compareTwoVdom(oldVdom, newVdom) {
     parentDOM.replaceChild(newDOM, oldDOM);
 }
 
+function mountForwardComponent(vdom) {
+    let { type, props, ref } = vdom;
+    let renderVdom = type.render(props, ref);
+    vdom.oldRenderVdom = renderVdom;
+    return createDOM(renderVdom);
+}
 
 const ReactDOM = {
     render,
