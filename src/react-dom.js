@@ -97,8 +97,10 @@ function mountFunctionComponent(vdom) {
 }
 
 function mountClassComponent(vdom) {
-    const { type: ClassComponent, props } = vdom;
+    const { type: ClassComponent, props, ref } = vdom;
     let classInstance = new ClassComponent(props);
+    // 如果类组件的虚拟DOM有ref属性，那么就把类的实例赋给ref.current属性
+    if (ref) ref.current = classInstance;
     let renderVdom = classInstance.render();
     classInstance.oldRenderVdom = vdom.oldRenderVdom = renderVdom;
     return createDOM(renderVdom);

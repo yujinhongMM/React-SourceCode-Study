@@ -1,27 +1,38 @@
 import React from './react';
 import ReactDOM from './react-dom';
-// 如何获取真实的DOM元素
-class Calculate extends React.Component {
+
+class TextInput extends React.Component {
     constructor(props) {
         super(props);
-        this.aRef = React.createRef(); // {current:null}
-        this.bRef = React.createRef(); // {current:null}
-        this.resultRef = React.createRef; // {current:null}
+        this.inputRef = React.createRef();
     }
-    handleDdd = () => {
-        let a = this.aRef.current.value;
-        let b = this.bRef.current.value;
-        this.resultRef.current.value = a + b;
+    getFocus = () => {
+        this.inputRef.current.focus();
+    }
+    render () {
+        return <input ref={this.inputRef} />
+    }
+}
+
+class Form extends React.Component {
+    constructor(props) {
+        super(props);
+        this.inputRef = React.createRef();
+    }
+    getFocus = (event) => {
+        // 如果给一个类组件添加了ref属性，那么ref.current会指向类组件的实例
+        this.inputRef.current.getFocus();
     }
     render() {
-        // 如果给一个原生组件添加了一个ref属性，那么当此原生虚拟DOM逐渐变成真实的DOM之后，会把真实的DOM元素赋给this.aRef.current
-        return <div>
-            <input ref={this.aRef} /> + <input ref={this.bRef} /> <button onClick={this.handleDdd}>=</button> <input ref={this.resultRef} />
-            
-        </div>
+        return(
+            <div>
+                <TextInput ref={this.inputRef} />
+                <button onClick={this.getFocus}>输入框获得焦点</button>
+            </div>
+        )
     }
 }
 
 ReactDOM.render(
-    <Calculate />, document.getElementById('root')
-);
+    <Form />, document.getElementById('root')
+)
