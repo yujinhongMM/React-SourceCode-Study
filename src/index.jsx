@@ -1,30 +1,48 @@
 import React from './react';
 import ReactDOM from './react-dom';
 
-function TextInput(props, forwardRef) {
-    return <input ref={forwardRef} />
-} 
-
-const ForwardedTextInput = React.forwardRef(TextInput);
-class Form extends React.Component {
+class Counter extends React.Component {
+    // 1.设置默认属性和初始状态
+    static defaultProps = {
+        name: '珠峰架构'
+    }
     constructor(props) {
         super(props);
-        this.inputRef = React.createRef();
+        this.state = { number: 0 }; // 设置默认状态
+        console.log('Counter 1.constructor');
     }
-    getFocus = (event) => {
-        // 如果给一个类组件添加了ref属性，那么ref.current会指向类组件的实例
-        this.inputRef.current.focus();
+    componentWillMount() {
+        console.log('Counter 2.componentWillmount');
     }
+    handleClick = (event) => {
+        this.setState({number: this.state.number + 1})
+    }
+    shouldComponentUpdate = (nextProps, nextState) => {
+        console.log('Counter 5.shouldComponentUpdate');
+        // 奇数不更新，偶数更新
+        return nextState.number % 2 === 0;
+    }
+    componentWillUpdate = (prevProps, prevState) => {
+        console.log('Counter 6.componentWillUpdate')
+    }
+    componentDidUpdate = (prevProps, prevState) => {
+        console.log('Counter 7.componentDidUpdate')
+    }
+    
+    
     render() {
-        return(
-            <div>
-                <ForwardedTextInput ref={this.inputRef} />
-                <button onClick={this.getFocus}>输入框获得焦点</button>
-            </div>
-        )
+        console.log('Counter 3.render');
+        return <div>
+            <div>{this.state.number}</div>
+            <button onClick={this.handleClick}>+</button>
+        </div>
     }
+    componentDidMount () {
+        console.log('Counter 4.componentDidMount');
+    }
+    
 }
 
 ReactDOM.render(
-    <Form />, document.getElementById('root')
+    <Counter />, document.getElementById('root')
 )

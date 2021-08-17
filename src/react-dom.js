@@ -9,10 +9,13 @@ function render(vdom, container) {
     mount(vdom, container);
 }
 
-function mount(vdom, container) {
+function mount(vdom, parentDOM) {
     let newDOM = createDOM(vdom);
     if (newDOM) {
-        container.appendChild(newDOM);
+        parentDOM.appendChild(newDOM);
+        if (newDOM._componentDidMount) {
+            newDOM._componentDidMount();
+        }
     }
 }
 
@@ -103,9 +106,17 @@ function mountClassComponent(vdom) {
     let classInstance = new ClassComponent(props);
     // 如果类组件的虚拟DOM有ref属性，那么就把类的实例赋给ref.current属性
     if (ref) ref.current = classInstance;
+    if (classInstance.componentWillMount) { // 组件将要挂载
+        classInstance.componentWillMount();
+    }
     let renderVdom = classInstance.render();
     classInstance.oldRenderVdom = vdom.oldRenderVdom = renderVdom;
-    return createDOM(renderVdom);
+    // 把类组件的实例的render方法返回的虚拟dom转换成真实DOM
+    let dom = createDOM(renderVdom);
+    if (classInstance.componentDidMount) { // 组件已经挂载
+        dom._componentDidMount = classInstance.componentDidMount.bind(classInstance);
+    }
+    return dom;
 }
 
 function findDOM(vdom) {

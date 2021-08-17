@@ -20,7 +20,9 @@ class Updater {
         this.pendingStates.push(partialState);
         this.emitUpdate(); // 触发更新
     }
-    emitUpdate() {
+    // 发射更新 状态和属性变化都可能会执行这个方法
+    emitUpdate(nextProps) {
+        this.nextProps = nextProps;
         // 有可能是批量更新，也有可能是同步更新
         if (updateQueue.isBatchingUpdate) { // 批量异步更新
             updateQueue.updaters.push(this); // 不刷新组件视图了，只是把自己这个updater实例添加到updateQueue等待生效
@@ -29,9 +31,10 @@ class Updater {
         }
     }
     updateComponent() {
-        const { classInstance, pendingStates } = this;
-        if (pendingStates.length > 0) {
-            this.shouldUpdate(classInstance, this.getState());
+        const { classInstance, pendingStates, nextProps } = this;
+        // 如果属性变了或者状态变了都会进入更新逻辑
+        if (pendingStates.length > 0 || nextProps) {
+            this.shouldUpdate(classInstance, this.getState(), nextProps);
         }
     }
     getState() {
@@ -46,9 +49,30 @@ class Updater {
         pendingStates.length = 0; // 清空等待生效状态的数组
         return state;
     }
-    shouldUpdate(classInstance, nextState) {
+    /**
+     * 
+     * @param {*} classInstance 类的实例
+     * @param {*} nextState 新的状态对象
+     * @param {*} nextProps 新的属性对象
+     */
+    shouldUpdate(classInstance, nextState, nextProps) {
+        let willUpdate = true; // 表示组件是否要更新
+        // 如果有shouldComponentUpdate方法并且shouldComponentUpdate方法返回了false
+        if (classInstance.shouldComponentUpdate && !classInstance.shouldComponentUpdate(nextProps, nextState)) {
+            willUpdate = false;
+        }
+        // 如果要更新，并且🈶️componentWillUpdate方法，就执行它
+        if (willUpdate && classInstance.componentWillUpdate) {
+            classInstance.componentWillUpdate();
+        }
+        // 不管要不要更新组件，状态都要更新
+        if (nextProps) {
+            classInstance.props = nextProps;
+        }
         classInstance.state = nextState; // 先把新状态赋值给实例的state
-        classInstance.forceUpdate(); // 强制更新
+        if (willUpdate) {
+            classInstance.forceUpdate(); // 强制更新
+        }
     }
 }
 
@@ -69,6 +93,9 @@ class Component {
         let newRenderVdom = this.render();
         ReactDOM.compareTwoVdom(oldRenderVdom, newRenderVdom);
         this.oldRenderVdom = newRenderVdom;
+        if (this.componentDidUpdate) {
+            this.componentDidUpdate(this.props, this.state);
+        }
     }
 }
 
