@@ -65,13 +65,14 @@ class Updater {
         if (willUpdate && classInstance.componentWillUpdate) {
             classInstance.componentWillUpdate();
         }
+        const snapshot = classInstance.getSnapshotBeforeUpdate && classInstance.getSnapshotBeforeUpdate(classInstance.props, classInstance.state) // TODO
         // 不管要不要更新组件，状态都要更新
         if (nextProps) {
             classInstance.props = nextProps;
         }
         classInstance.state = nextState; // 先把新状态赋值给实例的state
         if (willUpdate) {
-            classInstance.forceUpdate(); // 强制更新
+            classInstance.forceUpdate(snapshot); // 强制更新
         }
     }
 }
@@ -87,9 +88,8 @@ class Component {
         this.updater.addState(partialState);
     }
     // 根据新的属性状态计算新的要渲染的虚拟DOM
-    forceUpdate() {
+    forceUpdate(snapshot) {
         let oldRenderVdom = this.oldRenderVdom; // 上一次类组件render计算得到的虚拟DOM
-        // 然后基于新的属性和状态，计算新的虚拟DOM
         let oldDOM = ReactDOM.findDOM(oldRenderVdom)
         if (this.constructor.getDerivedStateFromProps) {
             let newState = this.constructor.getDerivedStateFromProps(this.props, this.state);
@@ -97,11 +97,12 @@ class Component {
                 this.state = newState;
             }
         }
+        // 然后基于新的属性和状态，计算新的虚拟DOM
         let newRenderVdom = this.render();
         ReactDOM.compareTwoVdom(oldDOM.parentNode, oldRenderVdom, newRenderVdom);
         this.oldRenderVdom = newRenderVdom;
         if (this.componentDidUpdate) {
-            this.componentDidUpdate(this.props, this.state);
+            this.componentDidUpdate(this.props, this.state, snapshot);
         }
     }
 }
