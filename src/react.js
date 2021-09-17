@@ -19,7 +19,7 @@ function createElement(type, config, children) {
         delete config.ref;
         delete config.key;
     }
-    let props = { ...config };
+    let props = { ...config }; // props里没有key的
     if (arguments.length > 3) {
         props.children = (Array.prototype.slice.call(arguments, 2)).map(wrapToVdom);
     } else {

@@ -7,3 +7,5 @@ export const REACT_FRAGMENT = Symbol('react.fragment');
 export const PLACEMENT = 'PLACEMENT';
 // 位置的移动
 export const MOVE = 'MOVE';
+// 删除
+export const DELETION = 'DELETION'

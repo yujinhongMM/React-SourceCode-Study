@@ -1,4 +1,4 @@
-import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT } from './constants';
+import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT, DELETION } from './constants';
 import Event from './event';
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
@@ -48,6 +48,7 @@ function createDOM(vdom) {
         if (props.children) {
             let children = props.children;
             if (typeof children === 'object' && children.type) { // 说明是一个React元素
+                children._mountIndex = 0;
                 mount(children, dom);
             } else if (Array.isArray(children)) {
                 reconcileChildren(props.children, dom);
@@ -91,16 +92,19 @@ function updateProps(dom, oldProps, newProps) {
  * @param {*} parentDOM 
  */
 function reconcileChildren(childrenVdom, parentDOM) {
-    childrenVdom.forEach(childVdom => mount(childVdom, parentDOM));
+    childrenVdom.forEach((childVdom, index) => {
+        childVdom._mountIndex = index;
+        mount(childVdom, parentDOM)
+    });
 }
 
 function mountFunctionComponent(vdom) {
     const { type, props } = vdom;
     // 这里的type就是传入的函数
-    let oldRendervdom = type(props);
+    let oldRenderVdom = type(props);
     // 这个代码我们现在还没有用，后面进行组件更新使用的
-    vdom.oldRendervdom = oldRendervdom;
-    return createDOM(oldRendervdom);
+    vdom.oldRenderVdom = oldRenderVdom;
+    return createDOM(oldRenderVdom);
 }
 
 function mountClassComponent(vdom) {
@@ -114,7 +118,7 @@ function mountClassComponent(vdom) {
     // 把类组件的实例挂载到它对应的vdom上
     vdom.classInstance = classInstance;
     let renderVdom = classInstance.render();
-    classInstance.oldRenderVdom = vdom.oldRenderVdom = renderVdom;
+    classInstance.oldRenderVdom = renderVdom;
     // 把类组件的实例的render方法返回的虚拟dom转换成真实DOM
     let dom = createDOM(renderVdom);
     if (classInstance.componentDidMount) { // 组件已经挂载
@@ -128,7 +132,8 @@ function findDOM(vdom) {
     if (vdom.dom) {
         return vdom.dom;
     } else {
-        return findDOM(vdom.oldRenderVdom);
+        let renderVdom = vdom.classInstance ? vdom.classInstance.oldRenderVdom : vdom.oldRenderVdom;
+        return findDOM(renderVdom);
     }
 }
 /**
@@ -153,8 +158,12 @@ function compareTwoVdom(parentDOM, oldVdom, newVdom, nextDOM) {
         if (newDOM._componentDidMount) newDOM._componentDidMount();
     } else if (oldVdom && newVdom && oldVdom.type !== newVdom.type) { // 如果老的新的都不是null,但是类型不同
         unMountVdom(oldVdom);
-        let newDOM = createDOM(newVdom); // 根据新的虚拟DOM创建新的真实DOM
-        parentDOM.appendChild(newDOM); // 添加到父节点上
+        let newDOM = createDOM(newVdom);//根据新的虚拟DOm创建新的真实DOM
+        if (nextDOM) {
+            parentDOM.insertBefore(newDOM, nextDOM)
+        } else {
+            parentDOM.appendChild(newDOM);//添加到父节点上
+        }
         if (newDOM._componentDidMount) newDOM._componentDidMount();
     } else { // 如果老得又，新的也有，并且类型也一样，只需要更新就可以，就可以服用老得节点了
         // 进入深度对比子节点的流程
@@ -169,8 +178,8 @@ function compareTwoVdom(parentDOM, oldVdom, newVdom, nextDOM) {
 function updateElement(oldVdom, newVdom) {
     // 如果新老节点都是纯文本节点的话
     if (oldVdom.type === REACT_TEXT) {
+        let currentDOM = newVdom.dom = findDOM(oldVdom);
         if (oldVdom.props.content !== newVdom.props.content) {
-            let currentDOM = newVdom.dom = findDOM(oldVdom);
             currentDOM.textContent = newVdom.props.content; // 更新文本节点的内容为新的文本内容
         }
     } else if (oldVdom.type === REACT_FRAGMENT) {
@@ -182,7 +191,6 @@ function updateElement(oldVdom, newVdom) {
         updateChildren(currentDOM, oldVdom.props.children, newVdom.props.children);
     } else if (typeof oldVdom.type === 'function') {
         if (oldVdom.type.isReactComponent) { // 类组件
-            newVdom.classInstance = oldVdom.classInstance;
             updateClassComponent(oldVdom, newVdom);
         } else { // 函数组件
             updateFunctionComponent(oldVdom, newVdom);
@@ -190,15 +198,93 @@ function updateElement(oldVdom, newVdom) {
     }
 }
 
+/**
+ * 实现完整的DOM-DIFF算法
+ * @param {*} parentDOM 父DOM节点
+ * @param {*} oldVChildren 老的虚拟DOM儿子的数组
+ * @param {*} newVChildren 新的虚拟DOM儿子的数组
+ */
 function updateChildren(parentDOM, oldVChildren, newVChildren) {
     oldVChildren = Array.isArray(oldVChildren) ? oldVChildren : oldVChildren ? [oldVChildren] : [];
     newVChildren = Array.isArray(newVChildren) ? newVChildren : newVChildren ? [newVChildren] : [];
-    let maxChildrenLength = Math.max(oldVChildren.length, newVChildren.length);
-    for (let i = 0; i < maxChildrenLength; i++) {
-        // 试图取出当前的节点的下一个，最近的弟弟真实DOM节点
-        let nextVdom = oldVChildren.find((item, index) => index > i && item && findDOM(item))
-        compareTwoVdom(parentDOM, oldVChildren[i], newVChildren[i], findDOM(nextVdom));
-    }
+    let keyedOldMap = {};
+    let lastPlacedIndex = 0; // 上一个不需要移动的老DOM节点的索引
+    oldVChildren.forEach((oldVChild, index) => {
+        let oldKey = oldVChild.key || index; // 如果提供了key，会使用key作为唯一表示，如果没有提供，会使用索引
+        keyedOldMap[oldKey] = oldVChild;
+    })
+    // 存着将要进行的操作
+    let patch = [];
+    // 循环新数组
+    newVChildren.forEach((newVChild, index) => {
+        newVChild._mountIndex = index; // 设置虚拟DOM的挂载索引index
+        let newKey = newVChild.key || index;
+        let oldVChild = keyedOldMap[newKey];
+        if (oldVChild) {
+            // 如果找到了，按理应该在此判断类型。
+            // 先执行更新虚拟DOM元素 在React15里， DOM的更新和DOM-DIFF放在一起进行的
+            updateElement(oldVChild, newVChild);
+            if (oldVChild._mountIndex < lastPlacedIndex) {
+                patch.push({
+                    type: MOVE,
+                    oldVChild,
+                    newVChild,
+                    fromIndex: oldVChild._mountIndex,
+                    toIndex: index
+                })
+            }
+            // 如果此节点被复用了，就把它从map中删除
+            delete keyedOldMap[newKey];
+            lastPlacedIndex = Math.max(lastPlacedIndex, oldVChild._mountIndex);
+        } else {
+            // 没有找到可复用的老节点
+            patch.push({
+                type: PLACEMENT,
+                newVChild,
+                toIndex: index
+            })
+        }
+    })
+    /* Object.values(keyedOldMap).forEach(oldVChild => {
+        patch.push({
+            type: DELETION,
+            oldVChild
+        })
+    })
+    if (patch.length > 0) {
+        console.log('%c [ patch ]', 'font-size:13px; background:pink; color:#bf2c9f;', patch)
+    } */
+    // 获取要移动的元素 这里面现在只有B
+    // 此处我只是把B从界面中移除了，但是B还是在内存里的，B这里的没有被销毁
+    const moveChilds = patch.filter(action => action.type === MOVE).map(action => action.oldVChild)
+    Object.values(keyedOldMap).concat(moveChilds).forEach(oldVChild => {
+        let currentDOM = findDOM(oldVChild);
+        // 获取到BDF三个的真实DOM元素，然后从界面中删除
+        currentDOM.parentNode.removeChild(currentDOM);
+    })
+    patch.forEach(action => {
+        let { type, oldVChild, newVChild, toIndex } = action;
+        let childNodes = parentDOM.childNodes; // 获取真实的子DOM元素的集合[A,C,E]
+        if (type === PLACEMENT) {
+            let newDOM = createDOM(newVChild); // 根据虚拟DOM创建真实DOM
+            let childDOMNode = childNodes[toIndex]; // 找一下目标索引现在对应的真实DOM元素
+            if (childDOMNode) { // 如果此位置上已经有DOM元素，插入到它前面
+                parentDOM.insertBefore(newDOM, childDOMNode);
+            } else {
+                parentDOM.appendChild(newDOM); // 添加到最后就可以了
+            }
+        } else if (type === MOVE) {
+            let oldDOM = findDOM(oldVChild); // 找到老的真实DOM，还可以在内存中把B取到，插入到指定的位置
+            let childDOMNode = childNodes[toIndex]; // 找一下目标索引现在对应的真实DOM元素
+            if (childDOMNode) { // 如果此位置上已经有DOM元素，插入到它前面
+                parentDOM.insertBefore(oldDOM, childDOMNode);
+            } else {
+                parentDOM.appendChild(oldDOM); // 添加到最后就可以了
+            }
+        }
+    })
+
+
 }
 
 function updateClassComponent(oldVdom, newVdom) {
@@ -207,7 +293,6 @@ function updateClassComponent(oldVdom, newVdom) {
         classInstance.componentWillReceiveProps(newVdom.props);
     }
     classInstance.updater.emitUpdate(newVdom.props);
-    newVdom.oldRenderVdom = classInstance.oldRenderVdom; // 是用来找真实DOM时有用
 }
 
 function updateFunctionComponent(oldVdom, newVdom) {
