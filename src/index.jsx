@@ -1,58 +1,59 @@
-import React from './react';
-import ReactDOM from './react-dom';
-class Counter extends React.Component {
-  //1.设置默认属性和初始状态 
-  static defaultProps = {
-    name: '珠峰架构'
-  }
+import React from 'react';
+import ReactDOM from 'react-dom';
+
+class ScrollList extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { number: 0 };//设置默认状态
+    this.state = { messages: [] };
+    this.wrapper = React.createRef();
   }
-  handleClick = (event) => {
-    this.setState({ number: this.state.number + 1 });
+
+  componentDidMount() {
+    this.timer = setInterval(() => {
+     this.addMessage()
+    }, 1000);
   }
+
+  addMessage = () => {
+    this.setState({
+      messages: [`${this.state.messages.length}`, ...this.state.messages]
+    })
+  }
+
+  getSnapshotBeforeUpdate(prevProps, prevState) {
+    return {
+      prevScrollTop: this.wrapper.current.scrollTop, // 向上卷去的高度
+      prevScrollHeight: this.wrapper.current.scrollHeight // DOM更新的内容高度
+    }
+  }
+
+  // DOM更新后
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    let { prevScrollTop = 0, prevScrollHeight = 0 } = snapshot;
+    let scrollHeightDiff = this.wrapper.current.scrollHeight - prevScrollHeight;
+    this.wrapper.current.scrollTop = scrollHeightDiff + prevScrollTop;
+  }
+  
+  
   render() {
+    let style = {
+      height: '100px',
+      width: '200px',
+      border: '1px solid red',
+      overflow: 'auto'
+    }
     return (
-      <div id={`div${this.state.number}`}>
-        <p>{this.state.number}</p>
-        <ChildCounter count={this.state.number} />
-        <button onClick={this.handleClick}>+</button>
+      <div style={style} ref={this.wrapper}>
+        {
+          this.state.messages.map((message, index) => {
+            return <div key={index}>{message}</div>
+          })
+        }
       </div>
     )
   }
 }
-class ChildCounter extends React.Component {
-    state = {
-        number: 0
-    } 
-    static getDerivedStateFromProps(nextProps, prevState) {
-        const { count } = nextProps;
-        if (count % 2 === 0) {
-            console.log(`偶数*2=${count*2}`)
-            return { number: count * 2 };
-        } else if (count % 3 === 0) {
-            console.log(`其他*3=${count*3}`)
-            return { number: count * 3 };
-        } else {
-          return null; // 不改状态
-        }
-    }
-    render() {
-        return (
-            <div>{this.state.number}</div>
-        )
-    }
-}
-ReactDOM.render(
-  <Counter />, document.getElementById('root')
-);
 
-/**
- * React17 domdiff会用到链表
- * getDerivedStateFromProps这个生命周期主要是那种情况下用到呢
- * // 如果组件收到了新的属性，可能会修改自己的状态
- * componentWillReceieProps() {
- *  setState(); 很容易引起死循环
- * }
- */
+ReactDOM.render(
+  <ScrollList />, document.getElementById('root')
+);
