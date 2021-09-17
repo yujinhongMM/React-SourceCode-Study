@@ -1,6 +1,6 @@
 import { wrapToVdom } from './utils';
 import Component from './Component';
-import { REACT_ELEMENT, REACT_FORWARD_REF } from './constants';
+import { REACT_ELEMENT, REACT_FORWARD_REF, REACT_FRAGMENT } from './constants';
 
 /**
  * 创建一个虚拟DOM，也就是React元素
@@ -43,7 +43,8 @@ const React = {
     createElement,
     Component,
     createRef,
-    forwardRef
+    forwardRef,
+    Fragment: REACT_FRAGMENT
 }
 
 export default React;

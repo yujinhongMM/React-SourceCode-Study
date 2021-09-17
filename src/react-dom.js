@@ -1,4 +1,4 @@
-import { REACT_TEXT, REACT_FORWARD_REF } from './constants';
+import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT } from './constants';
 import Event from './event';
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
@@ -29,6 +29,8 @@ function createDOM(vdom) {
     let dom; // 真实DOM
     if (type && type.$$typeof === REACT_FORWARD_REF) {
         return mountForwardComponent(vdom);
+    } else if (type === REACT_FRAGMENT) { // 说明它是一个文档碎片
+        dom = document.createDocumentFragment();
     } else if (type === REACT_TEXT) { // 如果这个元素是一个文本的话
         dom = document.createTextNode(props.content);
     } else if (typeof type === 'function') {
@@ -171,6 +173,9 @@ function updateElement(oldVdom, newVdom) {
             let currentDOM = newVdom.dom = findDOM(oldVdom);
             currentDOM.textContent = newVdom.props.content; // 更新文本节点的内容为新的文本内容
         }
+    } else if (oldVdom.type === REACT_FRAGMENT) {
+        let currentDOM = newVdom.dom = findDOM(oldVdom);
+        updateChildren(currentDOM, oldVdom.props.children, newVdom.props.children);
     } else if (typeof oldVdom.type === 'string') { // 此节点是原生组件span div之类，而且类型一样，说明可以服用老得dom节点
         let currentDOM = newVdom.dom = findDOM(oldVdom); // 获取老得真实DOM，准备复用
         updateProps(currentDOM, oldVdom.props, newVdom.props); // 直接用新的属性更新老的DOM节点即可
