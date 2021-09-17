@@ -90,8 +90,9 @@ class Component {
     forceUpdate() {
         let oldRenderVdom = this.oldRenderVdom; // 上一次类组件render计算得到的虚拟DOM
         // 然后基于新的属性和状态，计算新的虚拟DOM
+        let oldDOM = ReactDOM.findDOM(oldRenderVdom)
         let newRenderVdom = this.render();
-        ReactDOM.compareTwoVdom(oldRenderVdom, newRenderVdom);
+        ReactDOM.compareTwoVdom(oldDOM.parentNode, oldRenderVdom, newRenderVdom);
         this.oldRenderVdom = newRenderVdom;
         if (this.componentDidUpdate) {
             this.componentDidUpdate(this.props, this.state);
