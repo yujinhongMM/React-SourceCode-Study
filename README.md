@@ -38,3 +38,26 @@ http://www.zhufengpeixun.com/strong/html/106.1.react.html
 
 <img src="http://pic2.58cdn.com.cn/images/xq_img/n_v24fcb5107b5d14e72925ba5aa6ab5d340.png" alt="image-20210728170239429" style="zoom:50%;" />
 
+
+http://www.zhufengpeixun.com/strong/html/106.1.react.html#t6613.1 cra支持装饰器
+
+新增
+jsconfig.json config-overrides.js
+```javascript
+"scripts": {
+    "start": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-scripts start",
+    "build": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-scripts build",
+    "test": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-scripts test",
+    "eject": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-scripts eject"
+  },
+
+  替换成
+
+"scripts": {
+    "start": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-app-rewired start",
+    "build": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-app-rewired build",
+    "test": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-app-rewired test",
+    "eject": "cross-env DISABLE_NEW_JSX_TRANSFORM=true react-app-rewired eject"
+  },
+```
+
