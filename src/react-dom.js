@@ -1,4 +1,4 @@
-import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT, DELETION } from './constants';
+import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT, DELETION, REACT_CONTEXT, REACT_PROVIDER } from './constants';
 import Event from './event';
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
@@ -27,7 +27,11 @@ function createDOM(vdom) {
     if (!vdom) return null;
     let { type, props, ref } = vdom;
     let dom; // 真实DOM
-    if (type && type.$$typeof === REACT_FORWARD_REF) {
+    if (type && type.$$typeof === REACT_PROVIDER) {
+        return mountProvider(vdom);
+    } else if (type && type.$$typeof === REACT_CONTEXT) {
+        return mountContext(vdom);
+    } else if (type && type.$$typeof === REACT_FORWARD_REF) { // 说明它是一个转发过的函数组件
         return mountForwardComponent(vdom);
     } else if (type === REACT_FRAGMENT) { // 说明它是一个文档碎片
         dom = document.createDocumentFragment();
@@ -62,6 +66,31 @@ function createDOM(vdom) {
     return dom;
 }
 
+/**
+ * 渲染Provder组件
+ * 1、真正要渲染的是它的儿子children
+ * 2、把Provider组件自己收到的value属性赋值给context._currentValue
+ * @param {*} vdom 
+ * @returns 
+ */
+function mountProvider(vdom) {
+    let { type, props, ref } = vdom;
+    let context = type._context;
+    context._currentValue = props.value;
+    let renderVdom = props.children;
+    vdom.oldRenderVdom = renderVdom; // 这个操作就是让当前的虚拟DOM的oldRenderVdom指向要渲染的虚拟DOM
+    return createDOM(renderVdom);
+}
+
+
+function mountContext(vdom) {
+    let { type, props, ref } = vdom;
+    let context = type._context;
+    let currentValue = context._currentValue;
+    let renderVdom = props.children(currentValue);
+    vdom.oldRenderVdom = renderVdom; // 这个操作就是让当前的虚拟DOM的oldRenderVdom指向要渲染的虚拟DOM
+    return createDOM(renderVdom);
+}
 /**
  * 把新的属性更新到真实DOM上
  * @param {*} dom 
@@ -110,6 +139,9 @@ function mountFunctionComponent(vdom) {
 function mountClassComponent(vdom) {
     const { type: ClassComponent, props, ref } = vdom;
     let classInstance = new ClassComponent(props);
+    if (ClassComponent.contextType) {
+        classInstance.context = ClassComponent.contextType._currentValue;
+    }
     // 如果类组件的虚拟DOM有ref属性，那么就把类的实例赋给ref.current属性
     if (ref) ref.current = classInstance;
     if (classInstance.componentWillMount) { // 组件将要挂载
@@ -177,7 +209,11 @@ function compareTwoVdom(parentDOM, oldVdom, newVdom, nextDOM) {
  */
 function updateElement(oldVdom, newVdom) {
     // 如果新老节点都是纯文本节点的话
-    if (oldVdom.type === REACT_TEXT) {
+    if (oldVdom.type.$$typeof === REACT_PROVIDER) { // Provider更新
+        updateProvider(oldVdom, newVdom);
+    } else if (oldVdom.type.$$typeof === REACT_CONTEXT) { // Consumer更新
+        updateContext(oldVdom, newVdom);
+    } else if (oldVdom.type === REACT_TEXT) {
         let currentDOM = newVdom.dom = findDOM(oldVdom);
         if (oldVdom.props.content !== newVdom.props.content) {
             currentDOM.textContent = newVdom.props.content; // 更新文本节点的内容为新的文本内容
@@ -334,6 +370,28 @@ function mountForwardComponent(vdom) {
     let renderVdom = type.render(props, ref);
     vdom.oldRenderVdom = renderVdom;
     return createDOM(renderVdom);
+}
+
+
+function updateProvider(oldVdom, newVdom) {
+    let currentDOM = findDOM(oldVdom);// <div style={{margin:'10px'
+    let parentDOM = currentDOM.parentNode;// div#root
+    let { type, props } = newVdom;// type ={$$typeof:REACT_PROVIDER,_context:context }
+    let context = type._context;
+    context._currentValue = props.value;// 给context赋上新的_currentValue
+    let renderVdom = props.children;
+    compareTwoVdom(parentDOM, oldVdom.oldRenderVdom, renderVdom);
+    newVdom.oldRenderVdom = renderVdom;
+}
+
+function updateContext(oldVdom, newVdom) {
+    let currentDOM = findDOM(oldVdom);//<div style={{margin:'10px'
+    let parentDOM = currentDOM.parentNode;//div#root
+    let { type, props } = newVdom;//type ={$$typeof:REACT_PROVIDER,_context:context }
+    let context = type._context;
+    let renderVdom = props.children(context._currentValue);
+    compareTwoVdom(parentDOM, oldVdom.oldRenderVdom, renderVdom);
+    newVdom.oldRenderVdom = renderVdom;
 }
 
 const ReactDOM = {

@@ -1,77 +1,95 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import React from './react';
+import ReactDOM from './react-dom';
 let ThememContext = React.createContext();
-
-class Header extends React.Component {
-  static contextType = ThememContext;
-  render() {
+console.log(ThememContext);
+/**
+ * 如果类组件的话，可以通过给它添加contextType静态属性来取到this.context
+ * 
+ */
+function Header(){
+  return (
+    <ThememContext.Consumer>
+      {
+        value=>(
+          <div style={{margin:'10px',border:`5px solid ${value.color}`,padding:'5px'}}>
+           header
+           <Title/>  
+          </div>
+        )
+      }
+    </ThememContext.Consumer>
+  )
+}
+/* class Header extends React.Component{
+  static contextType = ThememContext
+  render(){
     return (
-      <div style={{margin: '10px', border: `5px solid ${this.context.color}`, padding: '5px'}}>
+      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>
         header
-        <Title />
+        <Title/>  
       </div>
     )
   }
-}
-
-class Title extends React.Component {
-  static contextType = ThememContext;
-  render() {
+} */
+class Title extends React.Component{
+  static contextType = ThememContext
+  render(){
     return (
-      <div style={{margin: '10px', border: `5px solid ${this.context.color}`, padding: '5px'}}>title</div>
+      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>title</div>
     )
   }
 }
-
-class Main extends React.Component {
-  static contextType = ThememContext;
-  render() {
+class Main extends React.Component{
+  static contextType = ThememContext
+  render(){
     return (
-      <div style={{margin: '10px', border: `5px solid ${this.context.color}`, padding: '5px'}}>
+      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>
         main
-        <Content />
+        <Content/>  
       </div>
     )
   }
 }
-
-class Content extends React.Component {
-  static contextType = ThememContext;
-  render() {
+class Content extends React.Component{
+  static contextType = ThememContext
+  render(){
     return (
-      <div style={{margin: '10px', border: `5px solid ${this.context.color}`, padding: '5px'}}>
-        content
-        <button onClick={() => this.context.changeColor('red')}>红色</button>
-        <button onClick={() => this.context.changeColor('green')}>绿色</button>
-      </div>
+      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>
+        Content
+        <button onClick={()=>this.context.changeColor('red')} style={{color:'red'}}>红色</button>
+        <button onClick={()=>this.context.changeColor('green')}  style={{color:'green'}}>绿色</button>
+        </div>
     )
   }
 }
-
-class Page extends React.Component {
-  constructor(props) {
+class Page extends React.Component{
+  constructor(props){
     super(props);
-    this.state = {color: 'red'};
+    this.state = {color:'red'};
   }
-  changeColor = (color) => {
-    this.setState({color})
+  changeColor = (color)=>{
+    this.setState({color});
   }
-
-  render() {
-    let value = {color: this.state.color, changeColor: this.changeColor};
+  render(){
+    let value = {color:this.state.color,changeColor:this.changeColor}
     return (
       <ThememContext.Provider value={value}>
-        <div style={{margin: '10px', border: `5px solid ${this.state.color}`, padding: '5px', width:'240px'}}>
+        <div style={{margin:'10px',border:`5px solid ${this.state.color}`,padding:'5px',width:'250px'}}>
           page
-          <Header />
-          <Main />
+          <Header/>
+          <Main/>
         </div>
       </ThememContext.Provider>
     )
   }
-
 }
-
-ReactDOM.render(
-  <Page />, document.getElementById('root')
-);
+ReactDOM.render(<Page />, document.getElementById('root'));
+/**
+let context = {
+  $$typeof: Symbol(react.context),
+  Consumer: {$$typeof: Symbol(react.context), _context: context}
+  Provider: {$$typeof: Symbol(react.provider), _context: context}
+  _currentValue: {color:this.state.color,changeColor:this.changeColor}
+}
+ * 
+ */

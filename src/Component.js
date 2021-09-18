@@ -91,6 +91,9 @@ class Component {
     forceUpdate(snapshot) {
         let oldRenderVdom = this.oldRenderVdom; // 上一次类组件render计算得到的虚拟DOM
         let oldDOM = ReactDOM.findDOM(oldRenderVdom)
+        if (this.constructor.contextType) {
+            this.context = this.constructor.contextType._currentValue;
+        }
         if (this.constructor.getDerivedStateFromProps) {
             let newState = this.constructor.getDerivedStateFromProps(this.props, this.state);
             if (newState) {
