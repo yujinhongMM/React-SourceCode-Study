@@ -1,95 +1,36 @@
 import React from './react';
 import ReactDOM from './react-dom';
-let ThememContext = React.createContext();
-console.log(ThememContext);
-/**
- * 如果类组件的话，可以通过给它添加contextType静态属性来取到this.context
- * 
- */
-function Header(){
-  return (
-    <ThememContext.Consumer>
-      {
-        value=>(
-          <div style={{margin:'10px',border:`5px solid ${value.color}`,padding:'5px'}}>
-           header
-           <Title/>  
-          </div>
-        )
+
+const withLoading = (message) => (OldComponent) => {
+  return class extends React.Component {
+    render() {
+      const state = {
+        show: () => {
+          let div = document.createElement('div');
+          div.innerHTML = `<p id="loading" style="position:absolute;top:100px;z-index:100;background-color:red;">${message}</p>`
+          document.body.appendChild(div);
+        },
+        hide: () => {
+          document.getElementById('loading').remove();
+        }
       }
-    </ThememContext.Consumer>
-  )
-}
-/* class Header extends React.Component{
-  static contextType = ThememContext
-  render(){
-    return (
-      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>
-        header
-        <Title/>  
-      </div>
-    )
-  }
-} */
-class Title extends React.Component{
-  static contextType = ThememContext
-  render(){
-    return (
-      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>title</div>
-    )
+      return <OldComponent {...this.props} {...state} />
+    }
   }
 }
-class Main extends React.Component{
-  static contextType = ThememContext
-  render(){
+
+class Hello extends React.Component {
+  render() {
     return (
-      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>
-        main
-        <Content/>  
+      <div>
+        {this.props.title}
+        <button onClick={this.props.show}>show</button>
+        <button onClick={this.props.hide}>hide</button>
       </div>
     )
   }
 }
-class Content extends React.Component{
-  static contextType = ThememContext
-  render(){
-    return (
-      <div style={{margin:'10px',border:`5px solid ${this.context.color}`,padding:'5px'}}>
-        Content
-        <button onClick={()=>this.context.changeColor('red')} style={{color:'red'}}>红色</button>
-        <button onClick={()=>this.context.changeColor('green')}  style={{color:'green'}}>绿色</button>
-        </div>
-    )
-  }
-}
-class Page extends React.Component{
-  constructor(props){
-    super(props);
-    this.state = {color:'red'};
-  }
-  changeColor = (color)=>{
-    this.setState({color});
-  }
-  render(){
-    let value = {color:this.state.color,changeColor:this.changeColor}
-    return (
-      <ThememContext.Provider value={value}>
-        <div style={{margin:'10px',border:`5px solid ${this.state.color}`,padding:'5px',width:'250px'}}>
-          page
-          <Header/>
-          <Main/>
-        </div>
-      </ThememContext.Provider>
-    )
-  }
-}
-ReactDOM.render(<Page />, document.getElementById('root'));
-/**
-let context = {
-  $$typeof: Symbol(react.context),
-  Consumer: {$$typeof: Symbol(react.context), _context: context}
-  Provider: {$$typeof: Symbol(react.provider), _context: context}
-  _currentValue: {color:this.state.color,changeColor:this.changeColor}
-}
- * 
- */
+
+let HelloWithLoading = withLoading('加载中......')(Hello);
+
+ReactDOM.render(<HelloWithLoading title="标题"/>, document.getElementById('root'));
