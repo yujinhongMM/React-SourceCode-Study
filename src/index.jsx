@@ -4,22 +4,6 @@ import ReactDOM from 'react-dom';
 /**
  * 比如说我们有一个组件是第三房提供的，我们不能改，也不能继承，但是还是想做一些修改或者说增强
  */
-class Button extends React.Component {
-  constructor(props) {
-    super(props);
-    //此处的this就是子类的实例
-    this.state = {name: '章三'}
-    console.log('Button constructor')
-  }
-  
-  componentDidMount() {
-    console.log('Button componentDidMount');
-  }
-  render() {
-    console.log('Button render');
-    return <button name={this.state.name} title={this.props.title} />
-  }
-}
 
 const wrapper = OldComponent => {
   return class extends OldComponent {
@@ -52,9 +36,25 @@ const wrapper = OldComponent => {
     }
   }
 }
-let WrappedButton = wrapper(Button);
+@wrapper
+class Button extends React.Component {
+  constructor(props) {
+    super(props);
+    //此处的this就是子类的实例
+    this.state = {name: '章三'}
+    console.log('Button constructor')
+  }
+  
+  componentDidMount() {
+    console.log('Button componentDidMount');
+  }
+  render() {
+    console.log('Button render');
+    return <button name={this.state.name} title={this.props.title} />
+  }
+}
 
-ReactDOM.render(<WrappedButton title="标题"/>, document.getElementById('root'));
+ReactDOM.render(<Button title="标题"/>, document.getElementById('root'));
 
 /**
  * super
