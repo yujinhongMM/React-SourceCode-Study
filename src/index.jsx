@@ -1,61 +1,30 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-
-/**
- * 比如说我们有一个组件是第三房提供的，我们不能改，也不能继承，但是还是想做一些修改或者说增强
- */
-
-const wrapper = OldComponent => {
-  return class extends OldComponent {
-    constructor(props) {
-      super(props);
-      console.log(this.state);
-      this.state = {number: 0};
-      console.log('wrapper constructor')
-    }
-
-    handleClick = () => {
-      this.setState({number:this.state.number + 1});
-    }
-
-    componentDidMount() {
-      console.log('wrapper componentDidMount');
-      super.componentDidMount();
-    }
-    
-    render() {
-      console.log("wrapper render");
-      // 调用父亲=类的render方法，返回一个虚拟DOM
-      let renderVdom = super.render(); // <button name={this.state.name} title={this.props.title} />
-      let newProps = {
-        ...renderVdom.props, // {name:undefined, title:'标题'} name为undefiend是因为子类的this.state从{name: '章三'}变成了{number: 0};
-        ...this.state, // {number: 0}
-        onClick: this.handleClick
-      }
-      return React.cloneElement(renderVdom, newProps, this.state.number, 'ok');// renderVdom老的属性对象，newProps新的属性对象，this.state.number：儿子
-    }
-  }
-}
-@wrapper
-class Button extends React.Component {
+import React from './react';
+import ReactDOM from './react-dom';
+class MouseTracker extends React.Component {
   constructor(props) {
     super(props);
-    //此处的this就是子类的实例
-    this.state = {name: '章三'}
-    console.log('Button constructor')
+    this.state = {x:0, y:0};
   }
-  
-  componentDidMount() {
-    console.log('Button componentDidMount');
+  handleMouseMove = (event) => {
+    this.setState({
+      x: event.clientX,
+      y: event.clientY
+    })
   }
   render() {
-    console.log('Button render');
-    return <button name={this.state.name} title={this.props.title} />
+    return (
+      <div onMouseMove={this.handleMouseMove}>
+        {this.props.render(this.state)}
+      </div>
+    )
   }
 }
-
-ReactDOM.render(<Button title="标题"/>, document.getElementById('root'));
-
-/**
- * super
- */
+// render props 组件的属性是一个render方法，返回值是要渲染的React元素
+ReactDOM.render(<MouseTracker render={
+  (props) => (
+    <React.Fragment>
+      <h1>移动鼠标</h1>
+      <p>当前鼠标的位置是{props.x},{props.y}</p>
+    </React.Fragment>
+  )
+}></MouseTracker>, document.getElementById('root'));
