@@ -425,7 +425,8 @@ const ReactDOM = {
     render,
     findDOM,
     createDOM,
-    compareTwoVdom
+    compareTwoVdom,
+    createPortal: render,
 }
 
 export default ReactDOM;

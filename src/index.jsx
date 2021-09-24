@@ -1,44 +1,33 @@
 import React from './react';
 import ReactDOM from './react-dom';
 
-class ClassCounter extends React.PureComponent {
-  render() {
-    console.log('ClassCounter render');
-    return <div>ClassCounter:{this.props.count}</div>
+class Dialog extends React.Component {
+  constructor(props) {
+    super(props);
+    this.node = document.createElement('div');
+    document.body.appendChild(this.node);
   }
-}
-
-function FunctionCounter(props) {
-  console.log('FunctionCounter render');
-  return <div>FunctionCounter:{props.count}</div>
-}
-
-const MemoFunctionCounter = React.memo(FunctionCounter);
-class App extends React.Component {
-  state = { number: 0 };
-  amountRef = React.createRef()
-  handleClick = () => {
-    let nextNumber = this.state.number + (parseInt(this.amountRef.current.value));
-    this.setState({
-      number: nextNumber
-    })
+  componentWillUnmount() {
+    document.body.removeChild(this.node);
   }
+  
   render() {
-    return (
-      <div>
-        <ClassCounter count={this.state.number} />
-        <MemoFunctionCounter count={this.state.number} />
-        <input ref={this.amountRef} />
-        <button onClick={this.handleClick}>+</button>
-      </div>
+    // 把一个JSX，也就是一个虚拟DOM元素渲染到对应的DOM节点中
+    return ReactDOM.createPortal(
+      <div className="dialog">
+        {this.props.children}
+      </div>,
+      this.node
     )
   }
 }
+class App extends React.Component {
+  render() {
+    return(
+      <div>
+         <Dialog>模态窗口</Dialog>
+      </div>
+    )
+  } 
+}
 ReactDOM.render(<App />, document.getElementById('root'));
-/**
-  {
-     $$typeof: Symbol(react.memo),
-     compare: null,
-     type: f FunctionCounter(props),
-  }
- */
