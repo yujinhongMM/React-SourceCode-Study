@@ -1,12 +1,36 @@
 import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT, DELETION, REACT_CONTEXT, REACT_PROVIDER, REACT_MEMO } from './constants';
 import Event from './event';
+
+let scheduleUpdate;
+// 这是一个全局变量,用来记录hook的值 注：源码用的链表
+let hookState = [];
+// 存放当前hook的索引
+let hookIndex = 0;
+
+export function useState(initialState) {
+    hookState[hookIndex] = hookState[hookIndex] || initialState;
+    let currentIndex = hookIndex;
+    function setState(newState) {
+        hookState[currentIndex] = newState; // currentIndex永远指向hookIndex赋值的时候的那个值
+        scheduleUpdate(); // 状态变化后，要执行调度更新任务
+    }
+    return [hookState[hookIndex++], setState]
+}
+
+
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
  * @param {*} vdom 虚拟DOM
- * @param {*} container 容器
+ * @param {*} parentDOM 容器
  */
-function render(vdom, container) {
-    mount(vdom, container);
+function render(vdom, parentDOM) {
+    mount(vdom, parentDOM);
+    // 在React里不管在哪里出发的更新，真正的调度都是从根节点开始的
+    scheduleUpdate = () => {
+        hookIndex = 0; // 把索引重置为0
+        // 从根节点执行完整的dom-diff，进行组件的更新
+        compareTwoVdom(parentDOM, vdom, vdom);
+    }
 }
 
 function mount(vdom, parentDOM) {

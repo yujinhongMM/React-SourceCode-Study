@@ -1,33 +1,20 @@
 import React from './react';
 import ReactDOM from './react-dom';
 
-class Dialog extends React.Component {
-  constructor(props) {
-    super(props);
-    this.node = document.createElement('div');
-    document.body.appendChild(this.node);
-  }
-  componentWillUnmount() {
-    document.body.removeChild(this.node);
-  }
-  
-  render() {
-    // 把一个JSX，也就是一个虚拟DOM元素渲染到对应的DOM节点中
-    return ReactDOM.createPortal(
-      <div className="dialog">
-        {this.props.children}
-      </div>,
-      this.node
-    )
-  }
+function Counter(props) {
+  const [number1, setNumber1] = React.useState(0);
+  const [number2, setNumber2] = React.useState(0);
+
+  let handleClick1 = () => setNumber1(number1 + 1);
+  let handleClick2 = () => setNumber2(number2 + 2);
+  return (
+    <div>
+      <p>{number1}</p>
+      <p>{number2}</p>
+      <button onClick={handleClick1}>+</button>
+      <button onClick={handleClick2}>+</button>
+    </div>
+  )
 }
-class App extends React.Component {
-  render() {
-    return(
-      <div>
-         <Dialog>模态窗口</Dialog>
-      </div>
-    )
-  } 
-}
-ReactDOM.render(<App />, document.getElementById('root'));
+
+ReactDOM.render(<Counter />, document.getElementById('root'));
