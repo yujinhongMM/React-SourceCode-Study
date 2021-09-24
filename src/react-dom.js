@@ -1,4 +1,4 @@
-import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT, DELETION, REACT_CONTEXT, REACT_PROVIDER } from './constants';
+import { REACT_TEXT, REACT_FORWARD_REF, REACT_FRAGMENT, MOVE, PLACEMENT, DELETION, REACT_CONTEXT, REACT_PROVIDER, REACT_MEMO } from './constants';
 import Event from './event';
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
@@ -27,7 +27,9 @@ function createDOM(vdom) {
     if (!vdom) return null;
     let { type, props, ref } = vdom;
     let dom; // 真实DOM
-    if (type && type.$$typeof === REACT_PROVIDER) {
+    if (type && type.$$typeof === REACT_MEMO) {
+        return mountMemo(vdom);
+    } else if (type && type.$$typeof === REACT_PROVIDER) {
         return mountProvider(vdom);
     } else if (type && type.$$typeof === REACT_CONTEXT) {
         return mountContext(vdom);
@@ -64,6 +66,15 @@ function createDOM(vdom) {
         ref.current = dom; // 如果把虚拟DOM转成真实DOM，就让ref.current=真实DOM
     }
     return dom;
+}
+
+function mountMemo(vdom) {
+    // type = {$$typeof: REACT_MEMO,type,compare}
+    let { type, props } = vdom; // type.type 函数组件
+    let renderVdom = type.type(props);
+    vdom.prevProps = props; // 在vdom上记录上一次的属性对象
+    vdom.oldRenderVdom = renderVdom; // 用于findDOM
+    return createDOM(renderVdom);
 }
 
 /**
@@ -208,8 +219,9 @@ function compareTwoVdom(parentDOM, oldVdom, newVdom, nextDOM) {
  * @param {*} newVdom 
  */
 function updateElement(oldVdom, newVdom) {
-    // 如果新老节点都是纯文本节点的话
-    if (oldVdom.type.$$typeof === REACT_PROVIDER) { // Provider更新
+    if (oldVdom.type.$$typeof === REACT_MEMO) {
+        updateMemo(oldVdom, newVdom);
+    } else if (oldVdom.type.$$typeof === REACT_PROVIDER) { // Provider更新
         updateProvider(oldVdom, newVdom);
     } else if (oldVdom.type.$$typeof === REACT_CONTEXT) { // Consumer更新
         updateContext(oldVdom, newVdom);
@@ -232,6 +244,21 @@ function updateElement(oldVdom, newVdom) {
             updateFunctionComponent(oldVdom, newVdom);
         }
     }
+}
+
+function updateMemo(oldVdom, newVdom) {
+    let { type, prevProps } = oldVdom;
+    // 比较结果相等，就不需要渲染了 render 
+    let renderVdom = oldVdom.oldRenderVdom;
+    if (!type.compare(prevProps, newVdom.props)) {
+        let currentDOM = findDOM(oldVdom);
+        let parentDOM = currentDOM.parentNode;
+        let { type, props } = newVdom;
+        renderVdom = type.type(props);
+        compareTwoVdom(parentDOM, oldVdom.oldRenderVdom, renderVdom);
+    }
+    newVdom.prevProps = newVdom.props;
+    newVdom.oldRenderVdom = renderVdom;
 }
 
 /**
