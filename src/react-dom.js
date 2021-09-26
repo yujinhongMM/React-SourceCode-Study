@@ -17,6 +17,56 @@ export function useState(initialState) {
     return [hookState[hookIndex++], setState]
 }
 
+/**
+ * 可以缓存对象
+ * @param {*} factory 可以用来创建对象的工厂方法
+ * @param {*} deps 依赖数组
+ */
+export function useMemo(factory, deps) {
+    // 先判断是不是初次渲染
+    if (hookState[hookIndex]) {
+        let [lastMemo, lastDeps] = hookState[hookIndex];
+        let same = deps.every((item, index) => item === lastDeps[index]);
+        if (same) {
+            hookIndex++;
+            return lastMemo;
+        } else {
+            let newMemo = factory();
+            hookState[hookIndex++] = [newMemo, deps];
+            return newMemo;
+        }
+    } else {
+        // 说明是初次渲染
+        let newMemo = factory();
+        hookState[hookIndex++] = [newMemo, deps];
+        return newMemo;
+    }
+}
+
+/**
+ * 可以缓存回调函数
+ * @param {*} callback 回调函数
+ * @param {*} deps 依赖数组
+ */
+export function useCallback(callback, deps) {
+    // 先判断是不是初次渲染
+    if (hookState[hookIndex]) {
+        let [lastCallback, lastDeps] = hookState[hookIndex];
+        let same = deps.every((item, index) => item === lastDeps[index]);
+        if (same) {
+            hookIndex++;
+            return lastCallback;
+        } else {
+            hookState[hookIndex++] = [callback, deps];
+            return callback;
+        }
+    } else {
+        // 说明是初次渲染
+        hookState[hookIndex++] = [callback, deps];
+        return callback;
+    }
+}
+
 
 /**
  * 把虚拟DOM变成真是DOM插入到容器内部
