@@ -7,14 +7,26 @@ let hookState = [];
 // 存放当前hook的索引
 let hookIndex = 0;
 
-export function useState(initialState) {
+export function useReducer(reducer, initialState) {
     hookState[hookIndex] = hookState[hookIndex] || initialState;
     let currentIndex = hookIndex;
-    function setState(newState) {
-        hookState[currentIndex] = newState; // currentIndex永远指向hookIndex赋值的时候的那个值
+    function dispatch(action) {
+        hookState[currentIndex] = reducer ? reducer(hookState[currentIndex], action) : action;
         scheduleUpdate(); // 状态变化后，要执行调度更新任务
     }
-    return [hookState[hookIndex++], setState]
+    return [hookState[hookIndex++], dispatch]
+}
+
+// useState是一个useReducer的语法糖，是一个简单的实现
+export function useState(initialState) {
+    return useReducer(null, initialState);
+    // hookState[hookIndex] = hookState[hookIndex] || initialState;
+    // let currentIndex = hookIndex;
+    // function setState(newState) {
+    //     hookState[currentIndex] = newState; // currentIndex永远指向hookIndex赋值的时候的那个值
+    //     scheduleUpdate(); // 状态变化后，要执行调度更新任务
+    // }
+    // return [hookState[hookIndex++], setState]
 }
 
 /**
