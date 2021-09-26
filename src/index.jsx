@@ -1,6 +1,14 @@
 import React from './react';
 import ReactDOM from './react-dom';
+// 创建一个CounterContext
+const CounterContext = React.createContext();
 
+/**
+ * 处理函数 接收老状态和动作，返回新的状态
+ * @param {*} state 
+ * @param {*} action 
+ * @returns 
+ */
 function reducer(state = {number: 0}, action) {
   switch(action.type) {
     case 'ADD':
@@ -12,7 +20,7 @@ function reducer(state = {number: 0}, action) {
 }
 
 function Counter() {
-  const [state, dispatch] = React.useReducer(reducer, { number: 0 });
+  let { state, dispatch } = React.useContext(CounterContext);
   return (
     <div>
       <p>{state.number}</p>
@@ -22,4 +30,12 @@ function Counter() {
   )
 }
 
-ReactDOM.render(<Counter />, document.getElementById('root'));
+function App() {
+  const [state, dispatch] = React.useReducer(reducer, { number: 0 });
+  return (
+    <CounterContext.Provider value={{state, dispatch}}>
+      <Counter />
+    </CounterContext.Provider>
+  )
+}
+ReactDOM.render(<App />, document.getElementById('root'));
