@@ -11,6 +11,7 @@ export function useReducer(reducer, initialState) {
     hookState[hookIndex] = hookState[hookIndex] || initialState;
     let currentIndex = hookIndex;
     function dispatch(action) {
+        action = typeof action === 'function' ? action(hookState[currentIndex]) : action;
         hookState[currentIndex] = reducer ? reducer(hookState[currentIndex], action) : action;
         scheduleUpdate(); // 状态变化后，要执行调度更新任务
     }
@@ -29,6 +30,31 @@ export function useState(initialState) {
     // return [hookState[hookIndex++], setState]
 }
 
+export function useEffect(effect, deps) {
+    // 先判断是不是初次渲染
+    if (hookState[hookIndex]) {
+        let [lastDestroy, lastDeps] = hookState[hookIndex];
+        let same = deps && deps.every((item, index) => item === lastDeps[index]);
+        if (same) {
+            hookIndex++;
+        } else {
+            // 如果有任何一个值不一样，则执行上一个销毁函数
+            lastDestroy && lastDestroy();
+            // 开启一个新的宏任务
+            setTimeout(() => {
+                let destroy = effect();
+                hookState[hookIndex++] = [destroy, deps];
+            });
+        }
+    } else {
+        // 如果是第一次执行的话
+        setTimeout(() => {
+            let destroy = effect();
+            hookState[hookIndex++] = [destroy, deps];
+        });
+    }
+}
+
 /**
  * 可以缓存对象
  * @param {*} factory 可以用来创建对象的工厂方法
@@ -38,7 +64,7 @@ export function useMemo(factory, deps) {
     // 先判断是不是初次渲染
     if (hookState[hookIndex]) {
         let [lastMemo, lastDeps] = hookState[hookIndex];
-        let same = deps.every((item, index) => item === lastDeps[index]);
+        let same = deps && deps.every((item, index) => item === lastDeps[index]);
         if (same) {
             hookIndex++;
             return lastMemo;
@@ -64,7 +90,7 @@ export function useCallback(callback, deps) {
     // 先判断是不是初次渲染
     if (hookState[hookIndex]) {
         let [lastCallback, lastDeps] = hookState[hookIndex];
-        let same = deps.every((item, index) => item === lastDeps[index]);
+        let same = deps && deps.every((item, index) => item === lastDeps[index]);
         if (same) {
             hookIndex++;
             return lastCallback;

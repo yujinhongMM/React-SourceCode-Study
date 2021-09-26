@@ -1,41 +1,32 @@
 import React from './react';
 import ReactDOM from './react-dom';
-// 创建一个CounterContext
-const CounterContext = React.createContext();
 
-/**
- * 处理函数 接收老状态和动作，返回新的状态
- * @param {*} state 
- * @param {*} action 
- * @returns 
- */
-function reducer(state = {number: 0}, action) {
-  switch(action.type) {
-    case 'ADD':
-      return {number: state.number + 1};
-    case 'MINUS':
-      return {number: state.number - 1};
-    default: return state;
-  }
-}
-
+// 1、加上依赖空数组 定时器只执行一次
 function Counter() {
-  let { state, dispatch } = React.useContext(CounterContext);
-  return (
-    <div>
-      <p>{state.number}</p>
-      <button onClick={() => dispatch({type: 'ADD'})}>+</button>
-      <button onClick={() => dispatch({type: 'MINUS'})}>-</button>
-    </div>
-  )
+  const [number, setNumber] = React.useState(0);
+  React.useEffect(() => {
+    console.log('开启定时器');
+    const timer = setInterval(() => {
+      setNumber(number => number + 1);
+    }, 1000)
+  }, []);
+  return <div>{number}</div>
 }
 
-function App() {
-  const [state, dispatch] = React.useReducer(reducer, { number: 0 });
-  return (
-    <CounterContext.Provider value={{state, dispatch}}>
-      <Counter />
-    </CounterContext.Provider>
-  )
-}
-ReactDOM.render(<App />, document.getElementById('root'));
+// 2、可在下一次执行effect的这之前清楚上一个定时器
+// function Counter() {
+//   const [number, setNumber] = React.useState(0);
+//   React.useEffect(() => {
+//     console.log('开启定时器');
+//     const timer = setInterval(() => {
+//       console.log('执行定时器');
+//       setNumber(number => number + 1);
+//     }, 1000)
+//     return () => {
+//       console.log("销毁定时器");
+//       clearInterval(timer)
+//     }
+//   });
+//   return <div>{number}</div>
+// }
+ReactDOM.render(<Counter />, document.getElementById('root'));
