@@ -10,6 +10,7 @@
 ## 前端性能监控和错误监控
 - 前端衡量性能的指标（时间监控）
   - Resource timing Performance API
+  - https://juejin.cn/post/6968301548342345736
 - 前端资源监控
   - performance.getEntriesByType('resource');
 - ajax请求监控

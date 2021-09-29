@@ -2,6 +2,7 @@
 
 # dependencies
 /website/node_modules
+/monitor/node_modules
 /.pnp
 .pnp.js
 
