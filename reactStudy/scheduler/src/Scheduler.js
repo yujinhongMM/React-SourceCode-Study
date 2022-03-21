@@ -93,6 +93,7 @@ function scheduleCallback (priorityLevel, callback, options) {
         // taskQueue.push(callback);
         requestHostCallback(flushWork);
     }
+    return newTask;
 }
 
 /**
@@ -188,6 +189,10 @@ function workLoop(currentTime) {
     }
 }
 
+function cancelCallback(task) {
+    task.callback = null;
+}
+
 export {
     scheduleCallback,
     shouldYield,
@@ -195,5 +200,6 @@ export {
     UserBlockingPriority, 
     NormalPriority, 
     LowPriority, 
-    IdlePriority
+    IdlePriority,
+    cancelCallback
 }
