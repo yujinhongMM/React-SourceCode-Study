@@ -32,7 +32,7 @@ function calculate2(didTimeout) {
         result2 += 1;
     }
     if (i2 < 2000000) {
-        return calculate;
+        return calculate2;
     } else {
         console.log(result2);
         return null;
@@ -44,7 +44,7 @@ function calculate3(didTimeout) {
         result3 += 1;
     }
     if (i3 < 1000000) {
-        return calculate;
+        return calculate3;
     } else {
         console.log("result3", result3);
         return null;
