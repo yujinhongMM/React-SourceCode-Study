@@ -1,7 +1,8 @@
 import { 
     requestHostCallback,
     shouldYieldToHost as shouldYield,
-    getCurrentTime
+    getCurrentTime,
+    requestHostTimeout
 } from './SchedulerHostConfig';
 import { push, pop, peek } from './SchedulerMinHeap';
 import { ImmediatePriority, UserBlockingPriority, NormalPriority, LowPriority, IdlePriority } from './SchedulerPriorities';
@@ -16,8 +17,10 @@ var IDLE_PRIORITY_TIMEOUT = maxSigned31BitInt;
 // 用于任务自增的id
 let taskIdCounter = 0;
 
-// 为了同时调度多个任务，而不会互相覆盖，需要搞一个任务队列
+// 为了同时调度多个任务，而不会互相覆盖，需要搞一个任务队列(已经开始的队列)
 let taskQueue = [];
+// 尚未开始的任务队列
+let timerQueue = [];
 // 当前的任务
 let currentTask;
 /**
@@ -25,11 +28,23 @@ let currentTask;
  * @param {*} priorityLevel 优先级
  * @param {*} callback 
  */
-function scheduleCallback (priorityLevel, callback) {
+function scheduleCallback (priorityLevel, callback, options) {
     // 获取当前时间
     let currentTime = getCurrentTime();
     // 此任务的开始时间
-    let startTime = currentTime;
+    let startTime;
+    if (typeof options === 'object' && options !== null) {
+        let delay = options.delay;
+        // 如果delay是一个数字，那么开始时间等于当前时间+延迟时间
+        if (typeof delay === 'number' && delay > 0) {
+            startTime = currentTime + delay;
+        } else {
+            // 否者就是开始时间等于当前时间，也就是立刻开始
+            startTime = currentTime;
+        }
+    } else {
+        startTime = currentTime;
+    }
     // 计算超时时间
     let timeout;
     switch (priorityLevel) {
@@ -59,12 +74,66 @@ function scheduleCallback (priorityLevel, callback) {
         startTime, // 任务开始的时间
         sortIndex: -1 // 排序值
     }
-    newTask.sortIndex = expirationTime;
-    // 向最小堆里添加一个新的任务，先比较优先级（索引）再比id
-    push(taskQueue, newTask);
-    // taskQueue.push(callback);
-    requestHostCallback(flushWork);
+    // 如果说任务开始时间大于当前时间，说明此任务不需要立刻开始，需要等待一段时间后才开始
+    if (startTime > currentTime) {
+        // 如果是延迟任务，那么在timerQueue中的排序依赖就是开始时间了
+        newTask.sortIndex = startTime;
+        // 添加到延迟任务最小堆里，优先队列里
+        push(timerQueue, newTask);
+        // 如果现在开始队列里已经为空了，并且新添加的这个延迟任务是延迟任务队列优先级最高的那个任务
+        if(peek(taskQueue) === null && newTask === peek(timerQueue)) {
+            // 开启一个定时器，等到此任务的开始时间到达的时候检查延迟任务并添加到taskQueue中
+            requestHostTimeout(handleTimeout, startTime - currentTime);
+        }
+    } else {
+        // 任务在最小堆里的排序依赖就是过期时间
+        newTask.sortIndex = expirationTime;
+        // 向最小堆里添加一个新的任务，先比较优先级（索引）再比id
+        push(taskQueue, newTask);
+        // taskQueue.push(callback);
+        requestHostCallback(flushWork);
+    }
 }
+
+/**
+ * 处理延迟任务
+ * 负责把延迟队列中那些已经到达开始时间的任务从延迟队列中取出来，添加到taskQueue中执行
+ */
+function handleTimeout(currentTime) {
+    advanceTimes(currentTime);
+    if (peek(taskQueue) !== null) {
+        // 如果任务队列里有任务，就再次调度一个flushWork，它会调用workLoop开始循环去清空任务队列
+        requestHostCallback(flushWork);
+    } else {
+        // 从延迟队列中去第一个任务，也就是最早开始的那个任务
+        const firstTimer = peek(timerQueue);
+        if (firstTimer) {
+            requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);
+        }
+    }
+}
+
+function advanceTimes(currentTime) {
+    // 取出延迟队列顶部的任务，也就是最早开始的那个任务
+    let timer = peek(timerQueue);
+    while (timer) {
+        if (timer.callback === null) {
+            pop(timerQueue);
+            // 如果此延迟任务的开始时间小于等于当前时间，说明这个任务应该开始了
+        } else if (timer.startTime <= currentTime) {
+            pop(timerQueue);
+            // 在任务队列中排序的依据是过期时间
+            timer.sortIndex = timer.expirationTime;
+            push(taskQueue, timer);
+        } else {
+            // 如果说没有到此任务的开始时间可以直接返回了
+            return;
+        }
+        timer = peek(timerQueue);
+    }
+}
+
+
 /**
  * 依次执行任务队列中的任务
  */
@@ -107,7 +176,16 @@ function workLoop(currentTime) {
         // 继续取出最小堆堆顶的任务
         currentTask = peek(taskQueue);
     }
-    return currentTask;
+    if (currentTask) {
+        return true;
+    } else {
+        // 说明taskQueue已经空了
+        const firstTimer = peek(timerQueue);
+        if (firstTimer) {
+            requestHostTimeout(handleTimeout, firstTimer.startTime - currentTime);
+        }
+        return false;
+    }
 }
 
 export {

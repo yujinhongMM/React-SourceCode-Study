@@ -7,6 +7,7 @@ messageChannel.port1.onmessage = performWorkUntilDeadline;
 let deadline = 0;
 // 每一帧我会申请5毫秒
 let yieldInterval = 5;
+let taskTimeoutId;
 export function getCurrentTime() {
     return performance.now();
 }
@@ -44,4 +45,10 @@ export function shouldYieldToHost() {
     const currentTime = getCurrentTime();
     // 如果当前时间大于截止时间了，说明到期了，时间片已经用完了，需要返回true，放弃执行任务
     return currentTime >= deadline;
+}
+
+export function requestHostTimeout(callback, ms) {
+    taskTimeoutId = setTimeout(() => {
+        callback(getCurrentTime())
+    }, ms)
 }
