@@ -6,6 +6,7 @@ import {
     NormalPriority, 
     LowPriority, 
     IdlePriority,
+    cancelCallback
  } from './scheduler';
  let result = 0, result2 = 0, result3 = 0;
  let i = 0, i2 = 0, i3= 0;
@@ -58,5 +59,3 @@ scheduleCallback(ImmediatePriority, calculate); // -1
 const task = scheduleCallback(LowPriority, calculate2, { delay: 10000}); // 10000ms
 scheduleCallback(UserBlockingPriority, calculate3); // 250ms
 cancelCallback(task);
-
-
